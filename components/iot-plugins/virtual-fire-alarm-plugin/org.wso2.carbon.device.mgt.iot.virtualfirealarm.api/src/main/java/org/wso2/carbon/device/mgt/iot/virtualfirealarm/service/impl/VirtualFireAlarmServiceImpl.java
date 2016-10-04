@@ -232,10 +232,14 @@ public class VirtualFireAlarmServiceImpl implements VirtualFireAlarmService {
     @Path("device/download")
     @GET
     @Produces("application/zip")
+    //change made here
     public Response downloadSketch(@QueryParam("deviceName") String deviceName,
-                                   @QueryParam("sketchType") String sketchType) {
+                                   @QueryParam("sketchType") String sketchType,
+                                   @QueryParam("location") String location
+                                   ) {
         try {
-            ZipArchive zipFile = createDownloadFile(APIUtil.getAuthenticatedUser(), deviceName, sketchType);
+            //change made here
+            ZipArchive zipFile = createDownloadFile(APIUtil.getAuthenticatedUser(), deviceName, location, sketchType);
             Response.ResponseBuilder response = Response.ok(FileUtils.readFileToByteArray(zipFile.getZipFile()));
             response.status(Response.Status.OK);
             response.type("application/zip");
@@ -266,15 +270,17 @@ public class VirtualFireAlarmServiceImpl implements VirtualFireAlarmService {
         }
     }
 
+    //Registering a device
     private boolean register(String deviceId, String name) {
         try {
-            DeviceIdentifier deviceIdentifier = new DeviceIdentifier();
-            deviceIdentifier.setId(deviceId);
-            deviceIdentifier.setType(VirtualFireAlarmConstants.DEVICE_TYPE);
-            if (APIUtil.getDeviceManagementService().isEnrolled(deviceIdentifier)) {
+            DeviceIdentifier deviceIdentifier = new DeviceIdentifier(); //identify device type
+            deviceIdentifier.setId(deviceId); //set device ID
+            deviceIdentifier.setType(VirtualFireAlarmConstants.DEVICE_TYPE); //setting device type as virtual firealarm
+            if (APIUtil.getDeviceManagementService().isEnrolled(deviceIdentifier)) { //if device is already enrolled
                 return false;
             }
             Device device = new Device();
+
             device.setDeviceIdentifier(deviceId);
             EnrolmentInfo enrolmentInfo = new EnrolmentInfo();
             enrolmentInfo.setDateOfEnrolment(new Date().getTime());
@@ -282,6 +288,7 @@ public class VirtualFireAlarmServiceImpl implements VirtualFireAlarmService {
             enrolmentInfo.setStatus(EnrolmentInfo.Status.ACTIVE);
             enrolmentInfo.setOwnership(EnrolmentInfo.OwnerShip.BYOD);
             device.setName(name);
+
             device.setType(VirtualFireAlarmConstants.DEVICE_TYPE);
             enrolmentInfo.setOwner(APIUtil.getAuthenticatedUser());
             device.setEnrolmentInfo(enrolmentInfo);
@@ -292,7 +299,8 @@ public class VirtualFireAlarmServiceImpl implements VirtualFireAlarmService {
         }
     }
 
-    private ZipArchive createDownloadFile(String owner, String deviceName, String sketchType)
+    //change made here
+    private ZipArchive createDownloadFile(String owner, String deviceName, String location, String sketchType)
             throws DeviceManagementException, APIManagerException, JWTClientException,
                    UserStoreException, VirtualFirealarmDeviceMgtPluginException {
         //create new device id
@@ -334,6 +342,8 @@ public class VirtualFireAlarmServiceImpl implements VirtualFireAlarmService {
                     ".common.config.server.configs";
             throw new DeviceManagementException(msg);
         }
+
+        //feeding some data to the zip file before the download begins?
         ZipUtil ziputil = new ZipUtil();
         return ziputil.createZipFile(owner, sketchType, deviceId, deviceName, apiApplicationKey.toString(),
                                      accessToken, refreshToken);
